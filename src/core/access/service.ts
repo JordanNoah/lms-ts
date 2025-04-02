@@ -1,69 +1,80 @@
 import { sequelize } from '@/core/database/sequelize';
+import { RoleModel } from './model/role.model';
+import { PermissionModel } from './model/permission.model';
+import RoleDto from './dto/role.dto';
+import { RolePermissionModel } from './model/rolePermission.model';
 
-const Role = sequelize.models['core.Role'];
-const Permission = sequelize.models['core.Permission'];
+export default class AccessCoreService {
+  static async registerOrUpdateRole(roleDto:RoleDto): Promise<RoleModel> {
+    try {
+      let [role, created] = await RoleModel.findOrCreate({
+        where: { shortName: roleDto.shortName },
+        defaults: {
+          name: roleDto.name,
+          description: roleDto.description,
+          shortName: roleDto.shortName,
+        },  
+      });
+      
+      if (role!.shortName === "visitor") {
+        const actualRoles = await this.getRolePermissions(role.id)
+        if (actualRoles.length == 0) {
+          const permissions = await PermissionModel.findAll();
+          await this.setRolePermissions(permissions, role!);
+        }
+      }
 
-// Interface local para incluir getPermissions()
-interface RoleInstance {
-  getPermissions: () => Promise<{ name: string }[]>;
-  addPermission: (perm: any) => Promise<void>;
-}
+      if (roleDto.permissions.length > 0) {
+        const permissionsIds = roleDto.permissions.map((permission) => permission.id!);
+        const permissions = await PermissionModel.findAll({
+          where: {
+            id: permissionsIds,
+          }
+        })
 
-/**
- * Verifica si un rol tiene un permiso específico
- */
-export async function roleHasPermission(roleName: string, permissionName: string): Promise<boolean> {
-  const role = await Role.findOne({
-    where: { name: roleName }
-  }) as unknown as RoleInstance;
+        const foundIds = permissions.map((perm) => perm.id);
+        const missing = permissionsIds.filter((id) => !foundIds.includes(id));
 
-  if (!role) return false;
+        if (missing.length > 0) {
+          throw new Error(`Missing permissions: ${missing.join(', ')}`);
+        }
 
-  const permissions = await role.getPermissions();
-  return permissions.some((p) => p.name === permissionName);
-}
+        await role!.setPermissions(permissions);
+      }
+      return role!;
+    }  catch (error) {
+      throw new Error(`Error registering roles: ${error}`);
+    }
+  }
+  
+  static async getRolePermissions(roleId: number): Promise<PermissionModel[]> {
+    const rows = await RolePermissionModel.findAll({ where: { roleId: roleId } });
+    const perms = await PermissionModel.findAll({
+      where: { id: rows.map(r => r.permissionId) }
+    });
+    return perms;
+  }
 
-/**
- * Verifica si un rol tiene al menos uno de varios permisos
- */
-export async function roleHasAnyPermission(roleName: string, permissions: string[]): Promise<boolean> {
-  const role = await Role.findOne({
-    where: { name: roleName }
-  }) as unknown as RoleInstance;
+  static async setRolePermissions(permissionModel:PermissionModel[], role: RoleModel): Promise<void> {
+    await RolePermissionModel.bulkCreate(
+      permissionModel.map(p => ({ roleId: role.id, permissionId: p.id }))
+    );
+  }
 
-  if (!role) return false;
-
-  const rolePermissions = await role.getPermissions();
-  return rolePermissions.some((p) => permissions.includes(p.name));
-}
-
-/**
- * Asigna un permiso a un rol
- */
-export async function assignPermissionToRole(roleName: string, permissionName: string) {
-  const [role] = await Role.findOrCreate({
-    where: { name: roleName },
-    defaults: { id: `role_${roleName}` }
-  });
-
-  const [permission] = await Permission.findOrCreate({
-    where: { name: permissionName },
-    defaults: { id: `perm_${permissionName}` }
-  });
-
-  await (role as unknown as RoleInstance).addPermission(permission);
-}
-
-/**
- * Obtiene todos los permisos de un rol
- */
-export async function getPermissionsForRole(roleName: string): Promise<string[]> {
-  const role = await Role.findOne({
-    where: { name: roleName }
-  }) as unknown as RoleInstance;
-
-  if (!role) return [];
-
-  const permissions = await role.getPermissions();
-  return permissions.map((p) => p.name);
+  static async getRoleByShortName(shortName: string):Promise<RoleModel | null> {
+    try {
+      const role = await RoleModel.findOne({ where: { shortName }, });
+      return role;
+    } catch (error) {
+      throw new Error(`Error getting role by name: ${error}`);
+    }
+  }
+  static async getRoleById(id: number):Promise<RoleModel | null> {
+    try {
+      const role = await RoleModel.findByPk(id);
+      return role;
+    } catch (error) {
+      throw new Error(`Error getting role by id: ${error}`);
+    }
+  }
 }

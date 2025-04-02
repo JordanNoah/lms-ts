@@ -1,21 +1,28 @@
-import { sequelize } from '@/core/database/sequelize';
+import RoleDto from './dto/role.dto';
+import AccessCoreService from './service';
 
-export async function seedAccessControl() {
-  console.log('🌱 Sembrando acceso...');
+export default async function seedDefaultRoles() {
+  try {
+    const roles: RoleDto[] = [
+      new RoleDto(
+        'Administrador',
+        'admin',
+        'Acceso total al sistema',
+        [] // permisos se ignoran porque el admin tiene acceso total por middleware
+      ),
+      new RoleDto(
+        'Visitante',
+        'visitor',
+        'Usuario visitante sin privilegios',
+        [] // podrías agregar permisos básicos si deseas
+      )
+    ];
 
-  const [adminRole] = await sequelize.models.Role.findOrCreate({
-    where: { name: 'admin' },
-    defaults: { id: 'role_admin' }
-  });
-
-  const allPermissions = await sequelize.models.Permission.findAll();
-
-  for (const permission of allPermissions) {
-    const has = await (adminRole as any).hasPermission(permission);
-    if (!has) {
-      await (adminRole as any).addPermission(permission);
+    for (const roleDto of roles) {
+      const role = await AccessCoreService.registerOrUpdateRole(roleDto);
+      console.log(`🎭 Rol "${role.shortName}" registrado con éxito`);
     }
+  } catch (error) {
+    console.error('❌ Error al sembrar roles por defecto:', error);
   }
-
-  console.log(`✅ Admin tiene ${allPermissions.length} permisos.`);
 }

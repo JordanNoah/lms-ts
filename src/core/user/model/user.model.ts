@@ -2,7 +2,7 @@ import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '@/core/database/sequelize';
 
 export interface UserAttributes {
-  id: string;
+  id: number;
   username: string;
   names: string;
   surnames: string;
@@ -16,8 +16,8 @@ export interface UserAttributes {
   updatedAt?: Date;
 }
 
-export class UserModel extends Model<UserAttributes, Omit<UserAttributes, 'id'>> implements UserAttributes {
-  declare id: string;
+export class UserModel extends Model<UserAttributes, Omit<UserAttributes, 'id'>> {
+  declare id: number;
   declare username: string;
   declare names: string;
   declare surnames: string;
@@ -33,9 +33,10 @@ export class UserModel extends Model<UserAttributes, Omit<UserAttributes, 'id'>>
 
 UserModel.init({
   id: {
-    type: DataTypes.STRING,
+    type: DataTypes.INTEGER,
     primaryKey: true,
-    allowNull: false
+    allowNull: false,
+    autoIncrement: true
   },
   username: {
     type: DataTypes.STRING,
