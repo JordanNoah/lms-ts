@@ -7,7 +7,8 @@ import { loadPluginPermissions } from './access/permissionLoader'; // si lo crea
 import { loadCoreEvents, loadPluginEvents } from './events/eventLoader';
 import { loadCoreModels, loadPluginModels } from './database/modelLoader';
 import { loadCoreApis, loadPluginApis } from './http/apiLoader';
-import { loadSeeders } from './database/seederLoader';
+import { loadAllSeeders } from './database/seederLoader';
+import UserService from './user/service';
 
 export default class Server {
   public async start() {
@@ -17,7 +18,7 @@ export default class Server {
     await loadCoreModels()
     await loadPluginModels()
     await sequelize.sync({force: false});
-    await loadSeeders(); // Carga seeders del core y plugins
+    await loadAllSeeders(); // Carga seeders del core y plugins
 
     // 🛡️ 3. Registra permisos de plugins (opcional, si usas permission-loader)
     if (loadPluginPermissions) await loadPluginPermissions();
@@ -28,9 +29,25 @@ export default class Server {
 
     await loadCoreApis(app);
     await loadPluginApis(app);
+
+    
     // 🚀 6. Inicia el servidor
     serve({ fetch: app.fetch, port: 3000 }, (info) => {
       console.log(`✅ Server started on http://localhost:${info.port}`);
     });
+  }
+
+
+  public async obligatoryToFunction() {
+    // Esto es necesario para que la app funcione correctamente
+    // 1.- Tiene que haber un usuario con rol admin en la base de datos
+    let role = await new UserService().getRoleByShortName("admin")
+    if (!role) {
+      throw new Error("✖️ Admin role not found")
+    }
+    const adminUser = await new UserService().getRoleById(role.id)
+    if (!adminUser) {
+      throw new Error("✖️ Admin user not found")
+    } 
   }
 }

@@ -1,5 +1,5 @@
-import RoleDto from './dto/role.dto';
-import AccessCoreService from './service';
+import RoleDto from '../dto/role.dto';
+import AccessCoreService from '../service';
 
 export default async function seedDefaultRoles() {
   try {

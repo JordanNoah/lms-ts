@@ -3,6 +3,7 @@ import { RoleModel } from './model/role.model';
 import { PermissionModel } from './model/permission.model';
 import RoleDto from './dto/role.dto';
 import { RolePermissionModel } from './model/rolePermission.model';
+import PermissionDto from './dto/permission.dto';
 
 export default class AccessCoreService {
   static async registerOrUpdateRole(roleDto:RoleDto): Promise<RoleModel> {
@@ -69,12 +70,33 @@ export default class AccessCoreService {
       throw new Error(`Error getting role by name: ${error}`);
     }
   }
+
   static async getRoleById(id: number):Promise<RoleModel | null> {
     try {
       const role = await RoleModel.findByPk(id);
       return role;
     } catch (error) {
       throw new Error(`Error getting role by id: ${error}`);
+    }
+  }
+
+  static async registerOrUpdatePermission(permissionDto: PermissionDto): Promise<PermissionModel> {
+    try {
+      let [permission, created] = await PermissionModel.findOrCreate({
+        where: { abbreviation: permissionDto.shortName },
+        defaults: {
+          name: permissionDto.name,
+          description: permissionDto.description,
+          abbreviation: permissionDto.shortName,
+        },
+      });
+
+      if (created) {
+        console.log(`🪪 Permission ${permissionDto.name} created`);
+      }
+      return permission;
+    } catch (error) {
+      throw new Error(`Error registering permissions: ${error}`);
     }
   }
 }
