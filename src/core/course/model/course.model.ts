@@ -1,30 +1,29 @@
-import { DataTypes, Model } from 'sequelize';
-import { sequelize } from '@/core/database/sequelize';
+import { DataTypes, Model } from "sequelize";
+import { sequelize } from "@/core/database/sequelize";
 
-import { PermissionModel } from './permission.model';
-import { RolePermissionModel } from './rolePermission.model';
-
-export interface RoleAttributes {
+export interface CourseAttributes {
     id: number;
-    name: string;
     shortName: string;
+    name: string;
     description?: string;
+    idNumber?: string | null;
+    sectionId: number;
     createdAt?: Date;
     updatedAt?: Date;
 }
 
-export class RoleModel extends Model<RoleAttributes, Omit<RoleAttributes, 'id'>> implements RoleAttributes {
+export class CourseModel extends Model<CourseAttributes, Omit<CourseAttributes, 'id'>> implements CourseAttributes {
     declare id: number;
-    declare name: string;
     declare shortName: string;
+    declare name: string;
     declare description?: string;
+    declare idNumber?: string | null;
+    declare sectionId: number;
     declare readonly createdAt: Date;
     declare readonly updatedAt: Date;
-    declare rolePermissions: RolePermissionModel[];
-    declare permissions?: PermissionModel[];
 }
 
-RoleModel.init({
+CourseModel.init({
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -32,12 +31,12 @@ RoleModel.init({
         unique: true,
         autoIncrement: true
     },
-    name: {
+    shortName: {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true
     },
-    shortName: {
+    name: {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true
@@ -45,9 +44,18 @@ RoleModel.init({
     description: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    sectionId: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    idNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true
     }
-}, {    
-    tableName: 'roles',
+}, {
+    tableName: 'courses',
     sequelize,
     underscored: true,
     timestamps: true

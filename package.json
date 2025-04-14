@@ -13,6 +13,7 @@
   "description": "",
   "dependencies": {
     "@hono/node-server": "^1.14.0",
+    "@hono/zod-validator": "^0.4.3",
     "dotenv": "^16.4.7",
     "hono": "^4.7.5",
     "jsonwebtoken": "^9.0.2",

@@ -37,4 +37,19 @@ export default class UserDto {
             )
         ];
     }
+
+    static postCreate(object:{ [key: string]: any }): [string?, UserDto?] {
+        return [undefined, new UserDto(
+            object.username,
+            object.names,
+            object.surnames,
+            object.email,
+            object.password,
+            object.phone,
+            object.address,
+            object.city,
+            object.country,
+            object.role
+        )]
+    }
 }

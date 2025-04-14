@@ -6,6 +6,7 @@ import { Dirent } from 'fs';
 export async function loadCoreModels() {
   const coreDir = path.join(__dirname, '..');
   const entries = await fs.readdir(coreDir, { withFileTypes: true });
+  
   await loadModelFolders(coreDir, entries);
 }
 

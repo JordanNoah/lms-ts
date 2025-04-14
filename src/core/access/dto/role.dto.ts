@@ -10,7 +10,7 @@ export default class RoleDto {
     ){}
 
     static create(object:{ [key: string]: any }): [string?, RoleDto?] {
-        const { name, shortName, description, permissions } = object;
+        const { name, shortName, description, permissions, id } = object;
         const errorMessage = 'Missing in the structure';
         if (!name) return [`name ${errorMessage}`, undefined];
         if (!shortName) return [`shortName ${errorMessage}`, undefined];
@@ -33,7 +33,8 @@ export default class RoleDto {
                 name,
                 shortName,
                 description,
-                permissionsArray
+                permissionsArray,
+                id
             )
         ];
     }

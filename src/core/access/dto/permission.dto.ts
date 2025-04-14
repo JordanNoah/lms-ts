@@ -7,7 +7,7 @@ export default class PermissionDto {
     ){}
 
     static create(object:{ [key: string]: any }): [string?, PermissionDto?] {
-        const { name, shortName, description } = object;
+        const { name, shortName, description, id } = object;
         const errorMessage = 'Missing in the structure';
         if (!name) return [`name ${errorMessage}`, undefined];
         if (!shortName) return [`shortName ${errorMessage}`, undefined];
@@ -17,7 +17,8 @@ export default class PermissionDto {
             new PermissionDto(
                 name,
                 shortName,
-                description
+                description,
+                id
             )
         ];
     }

@@ -4,17 +4,26 @@ import { UserModel } from "./model/user.model";
 import AccessCoreService from "../access/service";
 import { UserRoleModel } from "./model/user.role.model";
 import { RoleModel } from "../access/model/role.model";
+import { PermissionModel } from "../access/model/permission.model";
+import PaginationDto from "@/shared/pagination.dto";
+import UserPaginationEntity from "./entities/user.pagination.entity";
 
 export default class UserService {
     public async createUser(userDto: UserDto): Promise<UserModel> {
         try {
             let role = null
             if(userDto.role) {
-                role = await AccessCoreService.getRoleById(userDto.role)
+                role = await new AccessCoreService().getRoleById(userDto.role)
             }else{
-                role = await AccessCoreService.getRoleByShortName("visitor")
+                role = await new AccessCoreService().getRoleByShortName("visitor")
             }
+            if (!role) {
+                throw new Error("Role not found");
+            }
+            
             const user = await UserModel.create(userDto);
+            const userRole = await new AccessCoreService().setRoleToUser(user.id, role.id);
+
             return user;
         }catch (error) {
             throw new Error(`Error creating user: ${error}`);
@@ -24,9 +33,9 @@ export default class UserService {
         try {
             const existAdmin = await this.getUsersByRole(1);
             if (existAdmin.length > 0) {
-                throw new Error("Admin user already exists");
+                return existAdmin[0]; // Si ya existe un admin, lo retornamos
             }
-            const adminRole = await AccessCoreService.getRoleById(1)
+            const adminRole = await new AccessCoreService().getRoleById(1)
             if (!adminRole) {
                 throw new Error("Admin role not found");
             }
@@ -38,7 +47,7 @@ export default class UserService {
                     email: "changme@gmail.com",
                     password: "changeme",
                     surnames: "changeme",
-                    username: "changeme",
+                    username: "admin",
                 }
             })
 
@@ -46,6 +55,8 @@ export default class UserService {
 
             return user;
         } catch (error) {
+            console.log(error);
+            
             throw new Error(`Error creating admin: ${error}`);
         }
     }
@@ -121,6 +132,93 @@ export default class UserService {
             return role;
         } catch (error) {
             throw new Error(`Error fetching role by short name: ${error}`);
+        }
+    }
+
+    public async getByUsername(username: string): Promise<UserModel | null> {
+        try {
+            const user = await UserModel.findOne({
+                where: { username: username },
+            });
+
+            if (!user) {
+                return null; // O lanzar un error, según tu preferencia
+            }
+
+            user.roles = await this.getUsersRoles(user.id); // Asignar roles al usuario            
+            
+            return user;
+        } catch (error) {
+            throw new Error(`Error fetching user by username: ${error}`);
+        }
+    }
+
+    public async getUsersRoles(userId: number): Promise<RoleModel[]> {
+        try {
+            const userRoles = await UserRoleModel.findAll({
+                where: { userId: userId },
+            });
+            
+            if (!userRoles) {
+                return []; // O lanzar un error, según tu preferencia
+            }
+            const roles:RoleModel[] = [] // Arreglo para almacenar los roles
+            for (const userRole of userRoles) {
+                const role = await RoleModel.findByPk(userRole.roleId);
+                if (role) {
+                    role.permissions = await new AccessCoreService().getRolePermissions(role.id); // Asignar permisos al rol
+                    roles.push(role); // Asignar el rol al objeto userRole
+                }
+            }
+
+            return roles
+        } catch (error) {
+            throw new Error(`Error fetching roles for user ID ${userId}: ${error}`);
+        }
+    }
+
+    public async getPagination(paginationDto:PaginationDto): Promise<UserPaginationEntity>{
+        try {
+            const { itemsPerPage, page, sorting, search } = paginationDto;
+            const offset = (page - 1) * itemsPerPage;
+            const limit = itemsPerPage;
+            const where: any = {};
+
+            const users = await UserModel.findAndCountAll({
+                where: {
+                    ...(search && {
+                        [Op.or]: [
+                            { username: { [Op.like]: `%${search}%` } },
+                            { email: { [Op.like]: `%${search}%` } },
+                        ],
+                    }),
+                    id: {
+                        [Op.ne]: 1 // Excluir el usuario con ID 1 (admin)   
+                    }
+                },
+                limit,
+                offset,
+                order: sorting ? [[sorting.key, sorting.order]] : undefined,
+            })
+
+            const total = users.count;
+            return new UserPaginationEntity(page, total, users.rows);
+        } catch (error) {
+            throw new Error(`Error fetching users: ${error}`);
+        }
+    }
+
+    public async getUserById(id: number): Promise<UserModel | null> {
+        try {
+            const user = await UserModel.findByPk(id);
+
+            if (!user) {
+                return null; // O lanzar un error, según tu preferencia
+            }
+
+            return user;
+        } catch (error) {
+            throw new Error(`Error fetching user by ID: ${error}`);
         }
     }
 }

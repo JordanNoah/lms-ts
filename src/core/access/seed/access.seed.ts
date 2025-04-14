@@ -19,7 +19,7 @@ export default async function seedDefaultRoles() {
     ];
 
     for (const roleDto of roles) {
-      const role = await AccessCoreService.registerOrUpdateRole(roleDto);
+      const role = await new AccessCoreService().registerOrUpdateRole(roleDto);
       console.log(`🎭 Rol "${role.shortName}" registrado con éxito`);
     }
   } catch (error) {

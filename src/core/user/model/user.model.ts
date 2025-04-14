@@ -1,5 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '@/core/database/sequelize';
+import { RoleModel } from '@/core/access/model/role.model';
 
 export interface UserAttributes {
   id: number;
@@ -29,6 +30,7 @@ export class UserModel extends Model<UserAttributes, Omit<UserAttributes, 'id'>>
   declare country?: string;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
+  declare roles: RoleModel[];
 }
 
 UserModel.init({

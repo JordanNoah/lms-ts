@@ -1,3 +1,4 @@
+import { RoleModel } from "@/core/access/model/role.model";
 import { sequelize } from "@/core/database/sequelize"
 import { DataTypes, Model } from "sequelize";
 
@@ -15,7 +16,10 @@ export class UserRoleModel extends Model<UserRoleAttributes, Omit<UserRoleAttrib
     declare roleId: number;
     declare readonly createdAt: Date;
     declare readonly updatedAt: Date;
-}
+  
+    // 👇 Esto es lo que falta
+    declare roles: RoleModel[];
+  }
 
 UserRoleModel.init({
     id: {
